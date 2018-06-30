@@ -19,42 +19,42 @@ files = []
 
 for i in args.input:
 
-	if os.path.isdir(i):
-		files += glob.glob('{}*.log'.format(i))
-	else:
-		files.append(i)
+  if os.path.isdir(i):
+    files += glob.glob('{}*.log'.format(i))
+  else:
+    files.append(i)
 
 
 for f in files:
 
-	if args.cwd:
-		new_file = ntpath.basename(f)
-	else:
-		new_file = '{}.csv'.format(str(f))
+  if args.cwd:
+    new_file = ntpath.basename(f)
+  else:
+    new_file = '{}.csv'.format(str(f))
 
-	try:
-		if len(args.fields) == 0:
-			log_data = ParseBroLogs(f)
-		else:
-			log_data = ParseBroLogs(f, fields=args.fields)
+  try:
+    if len(args.fields) == 0:
+      log_data = ParseBroLogs(f)
+    else:
+      log_data = ParseBroLogs(f, fields=args.fields)
 
-	except Exception as e:
-		print('Error ({}): {}'.format(e,f))
-		continue
+  except Exception as e:
+    print('Error ({}): {}'.format(e,f))
+    continue
 
-	if args.stdo:
-		print(log_data.to_csv())
+  if args.stdo:
+    print(log_data.to_csv())
 
-	else:
+  else:
 
-		if (os.path.isfile(new_file) and args.overwrite) or (not os.path.isfile(new_file)):
+    if (os.path.isfile(new_file) and args.overwrite) or (not os.path.isfile(new_file)):
 
-			print('Parsing: {}'.format(f))
+      print('Parsing: {}'.format(f))
 
-			with open(new_file, 'w') as outfile:
-				outfile.write(log_data.to_escaped_csv())
+      with open(new_file, 'w') as outfile:
+        outfile.write(log_data.to_escaped_csv())
 
-			print('Written: {}.csv'.format(f))
+      print('Written: {}.csv'.format(f))
 
-		else:
-			print('Not overwriting: {}'.format(new_file))
+    else:
+      print('Not overwriting: {}'.format(new_file))
