@@ -1,16 +1,18 @@
 #!/usr/bin/python
 
-from parsebrologs import ParseBroLogs
+import os
+import glob
+import ntpath
 import argparse
-import os, glob, ntpath
+from parsebrologs import ParseBroLogs
 
 parser = argparse.ArgumentParser(description='Translate bro logs (TSV) to CSV')
 parser.add_argument('-i', '--input', dest='input', nargs = '+', required=True, metavar='./bro_logs/http.log', type=str, help='Specific bro log path - individual file or directory. Must be .log')
-parser.add_argument('-f', '--fields', type=str, nargs = '+', default=[], required=False, help='Fields to output')
-parser.add_argument('--overwrite', action='store_true', required=False, help='Overwrite existing files')
+parser.add_argument('-f', '--fields', type=str, nargs = '+', metavar='host', default=[], required=False, help='Bro output fields')
+parser.add_argument('--overwrite', action='store_true', required=False, help='Overwrite any existing files')
 parser.add_argument('--stdo', action='store_true', required=False, help='Print to standard out (as csv)')
 parser.add_argument('--cwd', action='store_true', required=False, help='Save files to the current working directory instead of beside original files.')
-parser.add_argument('--glob', type=str, default='*.log', required=False, help='Glob for bro logs. Must be quoted, e.g. "*.log" - can\'t be used when the input is a file (obviously...)')
+parser.add_argument('--glob', type=str, default='*.log', metavar='"*.log"', required=False, help='Glob for bro logs. Must be quoted, e.g. "*.log" - can\'t be used when the input is a file (obviously...)')
 args = parser.parse_args()
 
 
