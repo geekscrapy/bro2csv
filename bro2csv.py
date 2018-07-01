@@ -39,12 +39,15 @@ for f in files:
     else:
       log_data = ParseBroLogs(f, fields=args.fields)
 
+    # print(dir(log_data))
+    # exit()
+
   except Exception as e:
     print('Error ({}): {}'.format(e,f))
     continue
 
   if args.stdo:
-    print(log_data.to_csv())
+    print(log_data.to_escaped_csv(safe_headers=True))
 
   else:
 
@@ -53,7 +56,7 @@ for f in files:
       print('Parsing: {}'.format(f))
 
       with open(new_file, 'w') as outfile:
-        outfile.write(log_data.to_escaped_csv())
+        outfile.write(log_data.to_escaped_csv(safe_headers=True))
 
       print('Written: {}.csv'.format(f))
 
