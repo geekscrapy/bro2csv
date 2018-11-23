@@ -1,4 +1,4 @@
-#!/usr/python
+#!/usr/bin/python
 
 import os
 import csv
@@ -23,92 +23,93 @@ start = None
 
 with open(args.input, 'r') as f:
 
-	csv_read = csv.DictReader(f)
+    csv_read = csv.DictReader(f)
 
-	for row in csv_read:
+    for row in csv_read:
 
-		start = float(row['ts']) if not start else start
+        start = float(row['ts']) if not start else start
 
-		proto = row['proto'] if args.proto else None
-		port = row['id_resp_p'] if args.port else None
-		service = row['service'] if args.service else None
+        proto = row['proto'] if args.proto else None
+        port = row['id_resp_p'] if args.port else None
+        service = row['service'] if args.service else None
 
-		comm_tuple = ( row['id_orig_h'].strip(), row['id_resp_h'].strip(), proto, port, service )
+        comm_tuple = ( row['id_orig_h'].strip(), row['id_resp_h'].strip(), proto, port, service )
 
-		if not comm_tuple in deltas:
-			deltas[comm_tuple] = { 'prev': float(row['ts']), 'delta': [], 'interval': []}
-		else:
-			prev = deltas[comm_tuple]['prev']
-			deltas[comm_tuple]['delta'].append( float(row['ts']) - prev )
-			deltas[comm_tuple]['prev'] = float(row['ts'])
-			deltas[comm_tuple]['interval'].append( float(row['ts']) - start )
+        if not comm_tuple in deltas:
+            deltas[comm_tuple] = { 'prev': float(row['ts']), 'delta': [], 'interval': []}
+        else:
+            prev = deltas[comm_tuple]['prev']
+            deltas[comm_tuple]['delta'].append( float(row['ts']) - prev )
+            deltas[comm_tuple]['prev'] = float(row['ts'])
+            deltas[comm_tuple]['interval'].append( float(row['ts']) - start )
 
 
 if args.csv:
-	headers = ['connection_tuple', 'interval']
+    headers = ['connection_tuple','occurance', 'min_delta', 'max_delta', 'standard_dev', 'overall_duration']
 
-	csv_out = io.BytesIO()
-	csv_w = csv.DictWriter(csv_out, headers, dialect='excel', quoting=csv.QUOTE_ALL)
-	csv_w.writeheader()
+    csv_out = io.BytesIO()
+    csv_w = csv.DictWriter(csv_out, headers, dialect='excel', quoting=csv.QUOTE_ALL)
+    csv_w.writeheader()
 
 else:
-	headers = ['Connection_tuple', 'Occurance', 'Min_delta', 'Max_delta', 'Overall_duration', 'Standard_dev', 'Variance']
+    headers = ['Connection_tuple', 'Occurance', 'Min_delta', 'Max_delta', 'Overall_duration', 'Standard_dev', 'Variance']
 
-	t = pt(headers)
-	t.align['Connection_tuple'] = 'l'
-	t.align['Min_delta'] = 'l'
-	t.align['Max_delta'] = 'l'
-	t.align['Overall_duration'] = 'l'
-	t.align['Standard_dev'] = 'l'
-	t.align['Variance'] = 'l'
+    t = pt(headers)
+    t.align['Connection_tuple'] = 'l'
+    t.align['Min_delta'] = 'l'
+    t.align['Max_delta'] = 'l'
+    t.align['Overall_duration'] = 'l'
+    t.align['Standard_dev'] = 'l'
+    t.align['Variance'] = 'l'
 
 
 
 for comm_tuple, delta_v in deltas.items():
 
-	delta_list = delta_v['delta']
-	occurance = len(delta_list)+1
+    delta_list = delta_v['delta']
+    occurance = len(delta_list)+1
 
-	# If there is only one comm, this is useless, also disgard
-	# comms with only 2 points as this would be classified as beaconing!
-	if len(delta_list) < 3:
-		continue
+    # If there is only one comm, this is useless, also disgard
+    # comms with only 2 points as this would be classified as beaconing!
+    if len(delta_list) < 3:
+        continue
 
-	src, dst, proto, port, service = comm_tuple
+    src, dst, proto, port, service = comm_tuple
 
-	if args.csv:
+    round_list = [ round(x, 3) for x in delta_list ]
+    stdev = stats.stdev(round_list)
+    var = stats.variance(round_list)
+    min_d = min(round_list)
+    max_d = max(round_list)
+    o_durr = max(delta_v['interval']) - min(delta_v['interval'])
 
-		line = '{0}>{1}'.format(src, dst)
-		line += ':{}'.format(port) if port else '' 
-		line += '/{}'.format(proto) if proto else '' 
-		line += '-{}'.format(service) if service else '' 
+    if args.csv:
 
+        line = '{0}>{1}'.format(src, dst)
+        line += ':{}'.format(port) if port else '' 
+        line += '/{}'.format(proto) if proto else '' 
+        line += '-{}'.format(service) if service else '' 
 
-		for beacon in delta_v['interval']:
+        csv_w.writerow({
+            'connection_tuple': line,
+            'occurance': str(occurance),
+            'min_delta': str(min_d),
+            'max_delta': str(max_d),
+            'standard_dev': str(stdev),
+            'overall_duration': str(o_durr),
+            })
+        rows = csv_out.getvalue()[:-1]
 
-			csv_w.writerow({
-				'connection_tuple': line,
-				'interval': beacon,
-				})
-			rows = csv_out.getvalue()[:-1]
+    else:
 
-	else:
+        line = '{0:<15} > {1:<15}'.format(src, dst)
+        line += ' :{:<5}'.format(port) if port else '' 
+        line += ' /{:>4}'.format(proto) if proto else '' 
+        line += ' ({})'.format(service) if service else '' 
 
-		round_list = [ round(x, 3) for x in delta_list ]
-		stdev = stats.stdev(round_list)
-		var = stats.variance(round_list)
-		min_d = min(round_list)
-		max_d = max(round_list)
-		o_durr = max(delta_v['interval']) - min(delta_v['interval'])
-
-		line = '{0:<15} > {1:<15}'.format(src, dst)
-		line += ' :{:<5}'.format(port) if port else '' 
-		line += ' /{:>4}'.format(proto) if proto else '' 
-		line += ' ({})'.format(service) if service else '' 
-
-		t.add_row([line, str(occurance),str(min_d), str(max_d), str(stdev), str(o_durr), str(var) ])
+        t.add_row([line, str(occurance),str(min_d), str(max_d), str(stdev), str(o_durr), str(var) ])
 
 if args.csv:
-	print(rows)
+    print(rows)
 else:
-	print(t)
+    print(t)
